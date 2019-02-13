@@ -9,9 +9,11 @@ def main():
     parser = argparse.ArgumentParser(description="manual to this script")
     parser.add_argument('--step',type=int,default=1)
     parser.add_argument('--epoch',type=int,default=20)
+    parser.add_argument('--class_n',type=int,default=10)
     args = parser.parse_args()
     if args.step == 1:
-        train.step1(source="MNIST",epoch=args.epoch)
+        train.step1(source="MNIST",epoch=args.epoch,
+            classes_num=args.class_n)
         return 
     elif args.step == 2:
         train.step2(source="MNIST",target="USPS",epoch=args.epoch)

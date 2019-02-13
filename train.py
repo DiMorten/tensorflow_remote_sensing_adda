@@ -7,9 +7,19 @@ import adda
  
 def step1(source="MNIST",batch_size=64,epoch=10,lr=0.001,
             logdir="./Log/ADDA/source_network/best/MNIST/NOBN",
-            training_size=None,testing_size=None,classes_num=10):
+            training_size=None,testing_size=None,classes_num=10,
+            window_len=28):
     data_func = dataset.get_dataset_v2(source)
     x_tr,y_tr,x_te,y_te,tr_size,te_size,te_init = data_func(batch_size,training_size,testing_size)
+
+    # New #
+
+    #x_tr=tf.placeholder(tf.float32,[None,window_len,window_len,channel_n] )
+    print(x_tr.get_shape())
+    print(y_tr.get_shape())
+    print(y_te.get_shape())
+    print(tr_size)
+
     print("Training size:{},Testing size:{}".format(tr_size,te_size))
     batch_num = int(tr_size / batch_size)
 

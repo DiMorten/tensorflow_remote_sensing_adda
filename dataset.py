@@ -5,7 +5,6 @@ from mpl_toolkits.axes_grid1 import ImageGrid
 import h5py 
 import os 
 import scipy.io as io
-
 '''
     dataset     training samples    test samples
     MNIST            60000             10000
@@ -37,6 +36,10 @@ def get_dataset(source,target):
             func[id] = read_USPS
         elif domain == 'SVHN':
             func[id] = read_SVHN
+        elif domain == "area3":
+            func[id] = read_area3
+        elif domain == "area23":
+            func[id] = read_area23
     return func
 
 def get_dataset_v2(name):
@@ -48,12 +51,117 @@ def get_dataset_v2(name):
         return read_MNIST_M
     elif name == "SVHN":
         return read_SVHN
+    elif name == "area3":
+        return read_area3
+    elif name == "area23":
+        return read_area23
+         
     else:
         raise ValueError("can't find read data function for this dataset")
 
 # ===========read_xxx=====================
+
+def read_area3(batch_size,random_sample_train=2000,random_sample_test=2000,
+    dataset='area3',class_n=3):
+    (x_train,y_train),(x_test,y_test) = geohandler.data_load("area3",class_n=3)      
+        
+    #print(x_train.shape) # (60000,28,28)
+    #print(y_train.shape) # (60000)
+    #print(x_test.shape) # (10000,28,28)
+    #print(y_test.shape) # (10000)
+    if 1==2:
+        if random_sample_train != None:
+            idx = np.random.choice(np.arange(len(x_train)),random_sample_train)
+            x_train = x_train[idx]
+            y_train = y_train[idx]
+        if random_sample_test != None:
+            idx = np.random.choice(np.arange(len(x_test)),random_sample_test)
+            x_test = x_test[idx]
+            y_test = y_test[idx]
+
+        # group to tf.data.dataset
+        #print(np.max(x_train[1]))
+
+        # create dataset object
+        #x_train = np.expand_dims(x_train,axis=-1)
+        #x_test = np.expand_dims(x_test,axis=-1)
+
+    #    x_train = x_train * (1.0/127.5) - 1.0
+    #    x_test = x_test * (1.0 /127.5) - 1.0
+
+
+    train_dataset = tf.data.Dataset.from_tensor_slices({'image':x_train,'label':y_train})
+    test_dataset = tf.data.Dataset.from_tensor_slices({'image':x_test,'label':y_test})
+    # image preprocessing
+    #train_dataset = train_dataset.map(img_preprocessing)
+    #train_dataset = train_dataset.apply(tf.contrib.data.shuffle_and_repeat(len(x_train))).batch(batch_size,drop_remainder=True)
+    train_dataset =train_dataset.shuffle(len(x_train)).repeat().batch(batch_size,drop_remainder=True)
+    #print(len(x_test))
+    #test_dataset = test_dataset.map(img_preprocessing).batch(len(x_test),drop_remainder=True)
+    test_dataset = test_dataset.batch(len(x_test),drop_remainder=True)
+    
+    # create iter
+    iter_tr = train_dataset.make_one_shot_iterator()
+    iter_te = test_dataset.make_initializable_iterator()
+    image_tr,label_tr = iter_tr.get_next()
+    image_te,label_te = iter_te.get_next()
+
+    train_size = len(x_train)
+    test_size = len(x_test)
+    return image_tr,label_tr,image_te,label_te,train_size,test_size,iter_te.initializer 
+
+def read_area23(batch_size,random_sample_train=2000,random_sample_test=2000,
+    dataset='area23',class_n=3):
+    (x_train,y_train),(x_test,y_test) = geohandler.data_load("area23",class_n=3)
+        
+    #print(x_train.shape) # (60000,28,28)
+    #print(y_train.shape) # (60000)
+    #print(x_test.shape) # (10000,28,28)
+    #print(y_test.shape) # (10000)
+    if 1==2:
+        if random_sample_train != None:
+            idx = np.random.choice(np.arange(len(x_train)),random_sample_train)
+            x_train = x_train[idx]
+            y_train = y_train[idx]
+        if random_sample_test != None:
+            idx = np.random.choice(np.arange(len(x_test)),random_sample_test)
+            x_test = x_test[idx]
+            y_test = y_test[idx]
+
+        # group to tf.data.dataset
+        #print(np.max(x_train[1]))
+
+        # create dataset object
+        #x_train = np.expand_dims(x_train,axis=-1)
+        #x_test = np.expand_dims(x_test,axis=-1)
+
+    #    x_train = x_train * (1.0/127.5) - 1.0
+    #    x_test = x_test * (1.0 /127.5) - 1.0
+
+
+    train_dataset = tf.data.Dataset.from_tensor_slices({'image':x_train,'label':y_train})
+    test_dataset = tf.data.Dataset.from_tensor_slices({'image':x_test,'label':y_test})
+    # image preprocessing
+    #train_dataset = train_dataset.map(img_preprocessing)
+    #train_dataset = train_dataset.apply(tf.contrib.data.shuffle_and_repeat(len(x_train))).batch(batch_size,drop_remainder=True)
+    train_dataset =train_dataset.shuffle(len(x_train)).repeat().batch(batch_size,drop_remainder=True)
+    #print(len(x_test))
+    #test_dataset = test_dataset.map(img_preprocessing).batch(len(x_test),drop_remainder=True)
+    test_dataset = test_dataset.batch(len(x_test),drop_remainder=True)
+    
+    # create iter
+    iter_tr = train_dataset.make_one_shot_iterator()
+    iter_te = test_dataset.make_initializable_iterator()
+    image_tr,label_tr = iter_tr.get_next()
+    image_te,label_te = iter_te.get_next()
+
+    train_size = len(x_train)
+    test_size = len(x_test)
+    return image_tr,label_tr,image_te,label_te,train_size,test_size,iter_te.initializer 
+
 def read_MNIST(batch_size,random_sample_train=2000,random_sample_test=2000):
     (x_train,y_train),(x_test,y_test) = tf.keras.datasets.mnist.load_data()
+    
     #print(x_train.shape) # (60000,28,28)
     #print(y_train.shape) # (60000)
     #print(x_test.shape) # (10000,28,28)
@@ -73,8 +181,11 @@ def read_MNIST(batch_size,random_sample_train=2000,random_sample_test=2000):
     # create dataset object
     x_train = np.expand_dims(x_train,axis=-1)
     x_test = np.expand_dims(x_test,axis=-1)
-    x_train = x_train * (1.0/127.5) - 1.0
-    x_test = x_test * (1.0 /127.5) - 1.0
+
+#    x_train = x_train * (1.0/127.5) - 1.0
+#    x_test = x_test * (1.0 /127.5) - 1.0
+
+
     train_dataset = tf.data.Dataset.from_tensor_slices({'image':x_train,'label':y_train})
     test_dataset = tf.data.Dataset.from_tensor_slices({'image':x_test,'label':y_test})
     # image preprocessing
