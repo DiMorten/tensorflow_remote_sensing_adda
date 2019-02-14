@@ -5,6 +5,8 @@ from mpl_toolkits.axes_grid1 import ImageGrid
 import h5py 
 import os 
 import scipy.io as io
+
+import geohandler
 '''
     dataset     training samples    test samples
     MNIST            60000             10000
@@ -65,10 +67,10 @@ def read_area3(batch_size,random_sample_train=2000,random_sample_test=2000,
     dataset='area3',class_n=3):
     (x_train,y_train),(x_test,y_test) = geohandler.data_load("area3",class_n=3)      
         
-    #print(x_train.shape) # (60000,28,28)
-    #print(y_train.shape) # (60000)
-    #print(x_test.shape) # (10000,28,28)
-    #print(y_test.shape) # (10000)
+    print(x_train.shape) # (60000,28,28)
+    print(y_train.shape) # (60000)
+    print(x_test.shape) # (10000,28,28)
+    print(y_test.shape) # (10000)
     if 1==2:
         if random_sample_train != None:
             idx = np.random.choice(np.arange(len(x_train)),random_sample_train)
@@ -92,13 +94,18 @@ def read_area3(batch_size,random_sample_train=2000,random_sample_test=2000,
 
     train_dataset = tf.data.Dataset.from_tensor_slices({'image':x_train,'label':y_train})
     test_dataset = tf.data.Dataset.from_tensor_slices({'image':x_test,'label':y_test})
+    print("train_dataset",train_dataset)
     # image preprocessing
     #train_dataset = train_dataset.map(img_preprocessing)
     #train_dataset = train_dataset.apply(tf.contrib.data.shuffle_and_repeat(len(x_train))).batch(batch_size,drop_remainder=True)
+    train_dataset = train_dataset.map(img_preprocessing_geo)
+   
     train_dataset =train_dataset.shuffle(len(x_train)).repeat().batch(batch_size,drop_remainder=True)
+    print("train_dataset",train_dataset)
+
     #print(len(x_test))
     #test_dataset = test_dataset.map(img_preprocessing).batch(len(x_test),drop_remainder=True)
-    test_dataset = test_dataset.batch(len(x_test),drop_remainder=True)
+    test_dataset = test_dataset.map(img_preprocessing_geo).batch(len(x_test),drop_remainder=True)
     
     # create iter
     iter_tr = train_dataset.make_one_shot_iterator()
@@ -108,16 +115,17 @@ def read_area3(batch_size,random_sample_train=2000,random_sample_test=2000,
 
     train_size = len(x_train)
     test_size = len(x_test)
+    print("image_tr",image_tr)
     return image_tr,label_tr,image_te,label_te,train_size,test_size,iter_te.initializer 
 
 def read_area23(batch_size,random_sample_train=2000,random_sample_test=2000,
     dataset='area23',class_n=3):
     (x_train,y_train),(x_test,y_test) = geohandler.data_load("area23",class_n=3)
         
-    #print(x_train.shape) # (60000,28,28)
-    #print(y_train.shape) # (60000)
-    #print(x_test.shape) # (10000,28,28)
-    #print(y_test.shape) # (10000)
+    print("x_train",x_train.shape) # (60000,28,28)
+    print("y_train",y_train.shape) # (60000)
+    print(x_test.shape) # (10000,28,28)
+    print(y_test.shape) # (10000)
     if 1==2:
         if random_sample_train != None:
             idx = np.random.choice(np.arange(len(x_train)),random_sample_train)
@@ -144,10 +152,12 @@ def read_area23(batch_size,random_sample_train=2000,random_sample_test=2000,
     # image preprocessing
     #train_dataset = train_dataset.map(img_preprocessing)
     #train_dataset = train_dataset.apply(tf.contrib.data.shuffle_and_repeat(len(x_train))).batch(batch_size,drop_remainder=True)
+    train_dataset = train_dataset.map(img_preprocessing_geo)
+   
     train_dataset =train_dataset.shuffle(len(x_train)).repeat().batch(batch_size,drop_remainder=True)
     #print(len(x_test))
     #test_dataset = test_dataset.map(img_preprocessing).batch(len(x_test),drop_remainder=True)
-    test_dataset = test_dataset.batch(len(x_test),drop_remainder=True)
+    test_dataset = test_dataset.map(img_preprocessing_geo).batch(len(x_test),drop_remainder=True)
     
     # create iter
     iter_tr = train_dataset.make_one_shot_iterator()
@@ -162,10 +172,10 @@ def read_area23(batch_size,random_sample_train=2000,random_sample_test=2000,
 def read_MNIST(batch_size,random_sample_train=2000,random_sample_test=2000):
     (x_train,y_train),(x_test,y_test) = tf.keras.datasets.mnist.load_data()
     
-    #print(x_train.shape) # (60000,28,28)
-    #print(y_train.shape) # (60000)
-    #print(x_test.shape) # (10000,28,28)
-    #print(y_test.shape) # (10000)
+    print(x_train.shape) # (60000,28,28)
+    print(y_train.shape) # (60000)
+    print(x_test.shape) # (10000,28,28)
+    print(y_test.shape) # (10000)
     if random_sample_train != None:
         idx = np.random.choice(np.arange(len(x_train)),random_sample_train)
         x_train = x_train[idx]
@@ -187,11 +197,15 @@ def read_MNIST(batch_size,random_sample_train=2000,random_sample_test=2000):
 
 
     train_dataset = tf.data.Dataset.from_tensor_slices({'image':x_train,'label':y_train})
+    print("train_dataset",train_dataset)
+
     test_dataset = tf.data.Dataset.from_tensor_slices({'image':x_test,'label':y_test})
     # image preprocessing
     train_dataset = train_dataset.map(img_preprocessing)
     #train_dataset = train_dataset.apply(tf.contrib.data.shuffle_and_repeat(len(x_train))).batch(batch_size,drop_remainder=True)
     train_dataset =train_dataset.shuffle(len(x_train)).repeat().batch(batch_size,drop_remainder=True)
+    print("train_dataset",train_dataset)
+
     #print(len(x_test))
     test_dataset = test_dataset.map(img_preprocessing).batch(len(x_test),drop_remainder=True)
     # create iter
@@ -202,6 +216,8 @@ def read_MNIST(batch_size,random_sample_train=2000,random_sample_test=2000):
 
     train_size = len(x_train)
     test_size = len(x_test)
+    print("image_tr",image_tr)
+
     return image_tr,label_tr,image_te,label_te,train_size,test_size,iter_te.initializer 
 
 def read_USPS(batch_size,random_sample_train=1800,random_sample_test=2000):
@@ -379,6 +395,16 @@ def img_preprocessing(record):
     img = tf.cast(img,tf.float32)
     label = tf.cast(label,tf.int32) 
     return img,label
+
+def img_preprocessing_geo(record):
+    img = record['image']
+    label = record['label']
+    
+    #img = tf.image.per_image_standardization(img)
+    img = tf.cast(img,tf.float32)
+    label = tf.cast(label,tf.int32) 
+    return img,label
+
 # ==============image preprocess end==========================
 def show_grid(images,labels,shape=[2,5],show_label=False):
     fig = plt.figure("images")

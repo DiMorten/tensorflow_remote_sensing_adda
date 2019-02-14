@@ -12,6 +12,7 @@ def step1(source="MNIST",batch_size=64,epoch=10,lr=0.001,
     data_func = dataset.get_dataset_v2(source)
     x_tr,y_tr,x_te,y_te,tr_size,te_size,te_init = data_func(batch_size,training_size,testing_size)
 
+    print(x_tr)
     # New #
 
     #x_tr=tf.placeholder(tf.float32,[None,window_len,window_len,channel_n] )

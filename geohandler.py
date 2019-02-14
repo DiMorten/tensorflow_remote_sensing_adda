@@ -14,8 +14,8 @@ def data_load(dataset,class_n=3):
 	y_test=np.squeeze(y_test[:,int(window_len/2),int(window_len/2)])
 
 
-	y_train=array_to_one_hot(y_train,class_n)
-	y_test=array_to_one_hot(y_test,class_n)
+	#y_train=array_to_one_hot(y_train,class_n)
+	#y_test=array_to_one_hot(y_test,class_n)
 	print("Y train shape",y_train.shape)
 
 	return (x_train,y_train),(x_test,y_test)
