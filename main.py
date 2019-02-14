@@ -2,8 +2,8 @@ import argparse
 import os
 import train 
 import tensorflow as tf 
-os.environ['CUDA_VISIBLE_DEVICES']='1'
-tf.device('/gpu:1')
+#os.environ['CUDA_VISIBLE_DEVICES']='0'
+#tf.device('/gpu:0')
 
 def main():
     parser = argparse.ArgumentParser(description="manual to this script")
@@ -17,20 +17,28 @@ def main():
 
     if args.dataset=="MNIST":
         source="MNIST"
+        target="USPS"
+        source_dir="./Log/ADDA/source_network/best/MNIST/NOBN"
+        adv_dir="./Log/ADDA/advermodel/best/MNIST2USPS/NOBN"
     elif args.dataset=="vaihinghen":
         source="area3"
-
+        target="area23"
+        source_dir="./Log/ADDA/source_network/best/area3"
+        adv_dir="./Log/ADDA/advermodel/best/area3toarea23"
 
 
     if args.step == 1:
         train.step1(source=source,epoch=args.epoch,
-            classes_num=args.class_n)
+            classes_num=args.class_n,logdir=source_dir)
         return 
     elif args.step == 2:
-        train.step2(source="MNIST",target="USPS",epoch=args.epoch)
+        train.step2(source=source,target=target,epoch=args.epoch,
+            classes_num=args.class_n,source_dir=source_dir,
+            logdir=adv_dir)
         return 
     elif args.step == 3:
-        train.step3("MNIST","USPS")
+        train.step3(source=source,target=target,logdir=adv_dir,
+            classes_num=args.class_n)
         return 
 
 if __name__ == "__main__":
