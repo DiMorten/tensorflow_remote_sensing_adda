@@ -184,6 +184,9 @@ def step2(source,target,epoch,batch_size=64,
         fine_turn_saver.restore(sess,encoder_path)
         print("model init successfully!")
         filewriter = tf.summary.FileWriter(logdir=logdir,graph=sess.graph)
+        
+       #s_acc,t_acc = sess.run([acc_te_s,acc_te_t])
+        #print("Initial source acc %.4f, init target acc %.4f"%(s_acc,t_acc))
         for i in range(epoch):
             _,d_loss_, = sess.run([optim_d,d_loss])
             _,g_loss_,merge_ = sess.run([optim_g,g_loss,merge])
@@ -202,7 +205,7 @@ def step2(source,target,epoch,batch_size=64,
         utils.plot_acc(eval_acc,threshold=0.766)
         plt.show()
 
-def step3(source,target,batch_size=64,logdir="./Log/ADDA/advermodel/best/MNIST2USPS/NOBN",
+def step3(source,target,batch_size=4000,logdir="./Log/ADDA/advermodel/best/MNIST2USPS/NOBN",
          classes_num=10,strn=None,sten=None,ttrn=None,tten=None):
     # prepare data
     data_func = dataset.get_dataset(source,target)
@@ -215,17 +218,17 @@ def step3(source,target,batch_size=64,logdir="./Log/ADDA/advermodel/best/MNIST2U
     # create graph
     nn = adda.ADDA(classes_num)
     # for source domain
-    feat_s = nn.s_encoder(s_x_te,reuse=False,trainable=False)
+    feat_s = nn.s_encoder(s_x_tr,reuse=False,trainable=False)
     logits_s = nn.classifier(feat_s,reuse=False,trainable=False)
     disc_s = nn.discriminator(feat_s,reuse=False,trainable=False)
 
     # for target domain
-    feat_t = nn.t_encoder(t_x_te,reuse=False,trainable=False)
+    feat_t = nn.t_encoder(t_x_tr,reuse=False,trainable=False)
     logits_t = nn.classifier(feat_t,reuse=True,trainable=False)
     disc_t = nn.discriminator(feat_t,reuse=True,trainable=False)
 
-    source_accuracy = nn.eval(logits_s,s_y_te)
-    target_accuracy = nn.eval(logits_t,t_y_te)
+    source_accuracy = nn.eval(logits_s,s_y_tr)
+    target_accuracy = nn.eval(logits_t,t_y_tr)
 
     path = tf.train.latest_checkpoint(logdir)
     saver = tf.train.Saver(max_to_keep=3)
@@ -236,9 +239,11 @@ def step3(source,target,batch_size=64,logdir="./Log/ADDA/advermodel/best/MNIST2U
         saver.restore(sess,path)
         sess.run([s_init,t_init])
         s_acc,t_acc,sx,sfe,sl,tx,tfe,tl = sess.run([source_accuracy,target_accuracy,s_x_te,logits_s,s_y_te,t_x_te,logits_t,t_y_te])
+        sx_tr,tx_tr,sl_tr,tl_tr = sess.run([s_x_tr,t_x_tr,s_y_tr,t_y_tr])
+        sfe_tr,tfe_tr=sess.run([logits_s,logits_t])
         print(s_acc,t_acc)
-        utils.plot_tsne(sfe,sl,tfe,tl,200)
-        utils.plot_tsne_orign(sx,sl,tx,tl,200)
+        utils.plot_tsne(sfe_tr,sl_tr,tfe_tr,tl_tr,1000)
+        utils.plot_tsne_orign(sx_tr,sl_tr,tx_tr,tl_tr,1000)
     plt.show()
 
     
