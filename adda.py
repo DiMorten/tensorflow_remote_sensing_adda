@@ -47,6 +47,9 @@ class ADDA():
     
     def build_classify_loss(self,logits,labels):
         c_loss = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logits,labels=labels)
+        #weights=tf.cast(tf.greater(labels,0),tf.int32)
+        #c_loss = tf.losses.compute_weighted_loss(weights=weights,
+        #    losses=c_loss)
         c_loss = tf.reduce_mean(c_loss)
         return c_loss
     

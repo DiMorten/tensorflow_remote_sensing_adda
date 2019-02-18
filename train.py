@@ -3,8 +3,41 @@ import dataset
 import matplotlib.pyplot as plt 
 import utils 
 import adda 
+import numpy as np
+from numpy import linalg as LA
+def correlation_ratio(x,y):
+    
+    clss_values,clss_count=np.unique(y,return_counts=True)
+    clss_n=clss_values.shape[0]
+    print("clss_n",clss_n)
 
- 
+    print("Clss count",clss_count)
+    # x_avg=np.average(x)
+    # clss_avg=[]
+    # for clss in range(clss_n):
+    #     clss_avg.append(np.average(x[:,clss]))
+
+    # # numerator
+    # numerator=0
+    # for clss in range(clss_n):
+    #     print(clss)
+    #     numerator+=clss_count[clss]*LA.norm(clss_avg[clss],x_avg,axis=1)
+    # denominator=0
+    # for clss in range(clss_n):
+    #     for i in range(x.shape[0]):
+    #         denominator+=LA.norm(x[i,clss],x_avg,axis=1)
+
+    # eta_squared=numerator/denominator
+    # print(numerator,denominator,eta_squared)
+    # return eta_squared
+    numerator=0
+    for clss in range(clss_n):
+        print(clss)
+        numerator+=np.std(x[y==clss,:])
+
+    return numerator/np.std(x)
+    #np.std
+
 def step1(source="MNIST",batch_size=64,epoch=10,lr=0.001,
             logdir="./Log/ADDA/source_network/best/MNIST/NOBN",
             training_size=None,testing_size=None,classes_num=10,
@@ -109,10 +142,12 @@ def step2(source,target,epoch,batch_size=64,
     logits_t_te = nn.classifier(feats_t_te,reuse=True,trainable=False)
     disc_t_te = nn.discriminator(feats_t_te,reuse=True,trainable=False)
 
-    # build loss
-    g_loss,d_loss = nn.build_ad_loss(disc_s,disc_t)
-    #g_loss,d_loss = nn.build_w_loss(disc_s,disc_t)
 
+
+    # build loss
+    #g_loss,d_loss = nn.build_ad_loss(disc_s,disc_t)
+    g_loss,d_loss = nn.build_w_loss(disc_s,disc_t)
+    
     # create optimizer for two task
     var_t_en = tf.trainable_variables(nn.t_e)
     optim_g = tf.train.AdamOptimizer(g_lr,beta1=0.5,beta2=0.999).minimize(g_loss,var_list=var_t_en)
@@ -184,7 +219,7 @@ def step2(source,target,epoch,batch_size=64,
         fine_turn_saver.restore(sess,encoder_path)
         print("model init successfully!")
         filewriter = tf.summary.FileWriter(logdir=logdir,graph=sess.graph)
-        
+        e_stop_count=0
        #s_acc,t_acc = sess.run([acc_te_s,acc_te_t])
         #print("Initial source acc %.4f, init target acc %.4f"%(s_acc,t_acc))
         for i in range(epoch):
@@ -194,14 +229,20 @@ def step2(source,target,epoch,batch_size=64,
             if i % 20 == 0:
                 print("step:{},g_loss:{:.4f},d_loss:{:.4f}".format(i,g_loss_,d_loss_))
             
-            if i%100 == 0:# or i>(epoch-100):
+            if i%1 == 0:# or i>(epoch-100):
                 sess.run([s_init,t_init])
                 s_acc,t_acc,sx,sfe,sl,tx,tfe,tl = sess.run([acc_te_s,acc_te_t,s_x_te,logits_s_te,s_y_te,t_x_te,logits_t_te,t_y_te])
                 eval_acc.append(t_acc)
                 if best_acc < t_acc:
                     best_acc = t_acc
+                    e_stop_count=0
+                    best_saver.save(sess,logdir+"/adda_model.ckpt")
+                else:
+                    e_stop_count+=1
+                    if e_stop_count>800:
+                        break
                 print("epoch: %d, source accuracy: %.4f, target accuracy: %.4f, best accuracy：%4f"%(i,s_acc,t_acc,best_acc))
-                best_saver.save(sess,logdir+"/adda_model.ckpt")
+                
         utils.plot_acc(eval_acc,threshold=0.766)
         plt.show()
 
@@ -227,6 +268,8 @@ def step3(source,target,batch_size=4000,logdir="./Log/ADDA/advermodel/best/MNIST
     logits_t = nn.classifier(feat_t,reuse=True,trainable=False)
     disc_t = nn.discriminator(feat_t,reuse=True,trainable=False)
 
+    feat_t_original = nn.s_encoder(t_x_tr,reuse=True,trainable=False)
+
     source_accuracy = nn.eval(logits_s,s_y_tr)
     target_accuracy = nn.eval(logits_t,t_y_tr)
 
@@ -235,15 +278,34 @@ def step3(source,target,batch_size=4000,logdir="./Log/ADDA/advermodel/best/MNIST
 
     if path is None:
         raise ValueError("Don't exits in this dir:%s"%path)
+
+    aa=np.ones((4000,3))
+    bb=np.zeros(4000)
+    bb[0:30]=1
+    cc=correlation_ratio(aa,bb)
     with tf.Session() as sess:
         saver.restore(sess,path)
         sess.run([s_init,t_init])
         s_acc,t_acc,sx,sfe,sl,tx,tfe,tl = sess.run([source_accuracy,target_accuracy,s_x_te,logits_s,s_y_te,t_x_te,logits_t,t_y_te])
         sx_tr,tx_tr,sl_tr,tl_tr = sess.run([s_x_tr,t_x_tr,s_y_tr,t_y_tr])
-        sfe_tr,tfe_tr=sess.run([logits_s,logits_t])
+        sfe_tr,tfe_tr,tfe_tr_original=sess.run([feat_s,feat_t,feat_t_original]) # classifier output
+        print(sfe_tr.shape,sl_tr.shape)
+        print(tfe_tr.shape,tl_tr.shape)
+        print(np.concatenate((sl_tr,tl_tr),axis=0).shape)
+        print(np.concatenate((sfe_tr,tfe_tr),axis=0).shape)
         print(s_acc,t_acc)
-        utils.plot_tsne(sfe_tr,sl_tr,tfe_tr,tl_tr,1000)
-        utils.plot_tsne_orign(sx_tr,sl_tr,tx_tr,tl_tr,1000)
+        a=correlation_ratio(np.concatenate((sfe_tr,tfe_tr),axis=0),np.concatenate((sl_tr,tl_tr),axis=0))
+        print(a)
+        print("shape",sfe_tr.shape)
+        print(tfe_tr_original.shape)
+
+        b=correlation_ratio(np.concatenate((sfe_tr,tfe_tr_original)),np.concatenate((sl_tr,tl_tr)))
+
+        print("a,b",a,b)
+        utils.plot_tsne(sfe_tr,sl_tr,tfe_tr,tl_tr,200) #logits and outputs
+        
+        #utils.plot_tsne_orign(sx_tr,sl_tr,tx_tr,tl_tr,200)
+        utils.plot_tsne_orign(sfe_tr,sl_tr,tfe_tr_original,tl_tr,200)
     plt.show()
 
     
